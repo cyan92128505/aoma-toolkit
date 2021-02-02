@@ -3,6 +3,7 @@ import path from 'path';
 
 import { webkit } from 'playwright';
 import log4js from 'log4js';
+import { fillZero } from './fillZero.js';
 
 log4js.configure({
   appenders: { console_log: { type: 'console' } },
@@ -42,6 +43,11 @@ class BookController {
     }
   }
 
+  load(index) {
+    const _index = index || 0;
+    this.loadCapter(_index);
+  }
+
   /**
    * @param  {Number} index
    */
@@ -53,10 +59,24 @@ class BookController {
     }
     await this.init();
     const page = await this.browser.newPage();
-    const filePath = path.join(process.cwd(), 'book', 'results', `${this.pageTitles[index]}.txt`);
+    await page.setDefaultNavigationTimeout(0);
+
+    const filePath = path.join(
+      process.cwd(),
+      'book',
+      'results',
+      `${fillZero(index + 1, this.pageTitles.length)}_${this.pageTitles[index]}.txt`
+    );
     await fs.ensureFile(filePath);
     const fileStream = fs.createWriteStream(filePath);
     fileStream.on('error', (error) => logger.error);
+    page.on('error', async (error) => {
+      logger.error(error);
+      await fileStream.end();
+      await fileStream.close();
+      await page.close();
+      await this.loadCapter(index);
+    });
     await page.goto(`${this.root}${this.pages[index]}`);
     await this.loadNext(page, fileStream);
     await fileStream.end();
@@ -139,10 +159,6 @@ class BookController {
     const tCharList = _title.split('/');
     return tCharList.length == 0 ? false : tCharList[0] === '1';
   }
-
-  fillZero(index, length) {
-    return `${(10 ^ `${length}`.length) + index}`.substring(1);
-  }
 }
 
 export class Downloader {
@@ -152,7 +168,7 @@ export class Downloader {
       logger.debug('Load book success');
       const bookController = new BookController();
       bookController.setupFromJSON(json);
-      bookController.loadCapter(293);
+      bookController.load();
     } catch (error) {
       logger.error(`${error}`);
     }
