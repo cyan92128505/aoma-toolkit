@@ -2,17 +2,13 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import { webkit } from 'playwright';
-import log4js from 'log4js';
-import { fillZero } from './fillZero.js';
+import { fillZero } from '../utils/fillZero.js';
+import Translate from './translate.js';
+import GenerateEPub from './generateEPub.js';
+import Logger from '../utils/logger.js';
 
-log4js.configure({
-  appenders: { console_log: { type: 'console' } },
-  categories: { default: { appenders: ['console_log'], level: 'all' } },
-});
-
-const logger = log4js.getLogger();
-
-class BookController {
+export class BookController {
+  bookName = '';
   root = '';
   pages = [''];
   pageTitles = [''];
@@ -20,12 +16,17 @@ class BookController {
   content = [''];
   currentIndex = 0;
 
-  constructor() {}
+  /**
+   * @type {import('log4js').Logger}
+   */
+  logger;
 
-  setupFromJSON(json) {
-    this.root = json.root;
-    this.pages = json.pages.map((p) => p.url);
-    this.pageTitles = json.pages.map((p) => p.name);
+  constructor(config) {
+    this.logger = Logger;
+    this.bookName = config.bookName;
+    this.root = config.root;
+    this.pages = config.pages.map((p) => p.url);
+    this.pageTitles = config.pages.map((p) => p.name);
   }
 
   async init() {
@@ -39,7 +40,12 @@ class BookController {
       this.end = !!needEnd;
     }
     if (this.end) {
-      await this.browser.close();
+      if (this.browser) {
+        await this.browser.close();
+      }
+
+      await new Translate(this.bookName).Exec();
+      await new GenerateEPub(this.bookName).Exec();
     }
   }
 
@@ -52,26 +58,27 @@ class BookController {
    * @param  {Number} index
    */
   async loadCapter(index) {
+    await this.init();
     this.currentIndex = index;
     if (this.pages.length === index) {
       await this.detectEnd(true);
       return;
     }
-    await this.init();
     const page = await this.browser.newPage();
     await page.setDefaultNavigationTimeout(0);
 
     const filePath = path.join(
       process.cwd(),
       'book',
+      this.bookName,
       'results',
       `${fillZero(index + 1, this.pageTitles.length)}_${this.pageTitles[index]}.txt`
     );
     await fs.ensureFile(filePath);
     const fileStream = fs.createWriteStream(filePath);
-    fileStream.on('error', (error) => logger.error);
+    fileStream.on('error', (error) => this.logger.error);
     page.on('error', async (error) => {
-      logger.error(error);
+      this.logger.error(error);
       await fileStream.end();
       await fileStream.close();
       await page.close();
@@ -94,7 +101,7 @@ class BookController {
    */
   async loadNext(page, fileStream) {
     const title = await page.innerText('.nr_title > h3');
-    logger.info(title);
+    this.logger.info(title);
     if (this.detectCapterStartFromTitle(title)) {
       fileStream.write(`${this.pageTitles[this.currentIndex]}\n\n`);
     }
@@ -158,19 +165,5 @@ class BookController {
     const _title = title.replace(/[^\d\/]/g, '');
     const tCharList = _title.split('/');
     return tCharList.length == 0 ? false : tCharList[0] === '1';
-  }
-}
-
-export class Downloader {
-  async Exec() {
-    try {
-      const json = await fs.readJSON(path.join(process.cwd(), 'book', 'list.json'));
-      logger.debug('Load book success');
-      const bookController = new BookController();
-      bookController.setupFromJSON(json);
-      bookController.load();
-    } catch (error) {
-      logger.error(`${error}`);
-    }
   }
 }

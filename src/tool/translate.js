@@ -3,11 +3,15 @@ import path from 'path';
 import opencc from 'opencc';
 
 class Translate {
+  bookName = '';
+  constructor(bookName) {
+    this.bookName = bookName;
+  }
   async Exec() {
     const converter = new opencc.OpenCC('s2tw.json');
 
-    const sourcePath = path.join(process.cwd(), 'book', 'results');
-    const targetPath = path.join(process.cwd(), 'book', 'zhTW');
+    const sourcePath = path.join(process.cwd(), 'book', this.bookName, 'results');
+    const targetPath = path.join(process.cwd(), 'book', this.bookName, 'zhTW');
 
     const fileList = await fs.readdir(sourcePath);
     const fileResult = await Promise.all(
@@ -31,4 +35,4 @@ class Translate {
   }
 }
 
-new Translate().Exec();
+export default Translate;

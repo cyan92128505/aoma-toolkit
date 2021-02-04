@@ -1,21 +1,22 @@
-// import path from 'path';
-// import EPub from 'epub';
+import geturls from 'get-urls';
 
-// async function main() {
-//   const epub = new EPub(path.join(process.cwd(), 'book', 'book.epub'));
+import logger from './utils/logger.js';
+import { ListGetter } from './tool/listGetter.js';
 
-//   epub.on('end', function () {
-//     epub.flow.forEach(function (chapter) {
-//       console.log(chapter.id);
-//     });
-//   });
+(async function Main() {
+  let rootUrl = '';
+  for (const argv of process.argv) {
+    if (!/--.+/.test(argv)) {
+      continue;
+    }
 
-//   epub.parse();
-// }
+    rootUrl = /--url.+/.test(argv) ? argv.split('=')[1] : rootUrl;
+  }
 
-// main();
+  if (rootUrl.length == 0 || geturls(rootUrl).size != 1) {
+    logger.error(`WRONG URL!!`);
+    return;
+  }
 
-import { Downloader } from './tool/downloader.js';
-
-const downloader = new Downloader();
-downloader.Exec();
+  new ListGetter().load(rootUrl);
+})();

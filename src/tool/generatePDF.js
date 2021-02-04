@@ -3,9 +3,17 @@ import path from 'path';
 import PDFDocument from 'pdfkit';
 
 class GeneratePDF {
+  bookName = '';
+  constructor(bookName) {
+    this.bookName = bookName;
+  }
   async Exec() {
-    const storeStream = fs.createWriteStream(path.join(process.cwd(), 'book', 'book.pdf'), { encoding: 'utf-8' });
-    const refStream = fs.createReadStream(path.join(process.cwd(), 'book', 'book.txt'), { encoding: 'utf-8' });
+    const storeStream = fs.createWriteStream(path.join(process.cwd(), 'book', this.bookName, 'book.pdf'), {
+      encoding: 'utf-8',
+    });
+    const refStream = fs.createReadStream(path.join(process.cwd(), 'book', this.bookName, 'book.txt'), {
+      encoding: 'utf-8',
+    });
     const pdfDoc = new PDFDocument();
     pdfDoc.registerFont(
       'HiraginoMinchoPro-W3',
@@ -30,4 +38,4 @@ class GeneratePDF {
   }
 }
 
-new GeneratePDF().Exec();
+export default GeneratePDF;
