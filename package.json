@@ -18,6 +18,7 @@
     "eslint-plugin-import": "^2.22.1",
     "express": "^4.17.1",
     "fs-extra": "^9.1.0",
+    "get-urls": "^10.0.0",
     "husky": "^4.3.8",
     "lodash": "^4.17.20",
     "log4js": "^6.3.0",
@@ -29,7 +30,8 @@
     "printWidth": 120,
     "parser": "typescript",
     "trailingComma": "es5",
-    "singleQuote": true
+    "singleQuote": true,
+    "tabWidth": 2
   },
   "scripts": {
     "download": "node ./src/main.js",
@@ -39,9 +41,5 @@
   "devDependencies": {
     "jest": "^26.6.3",
     "jsdoc": "^3.6.6"
-  },
-  "jest": {
-    "verbose": true,
-    "testEnvironment": "jest-environment-node"
   }
 }
